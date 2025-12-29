@@ -14,7 +14,16 @@
                         <span class="notification-badge">3</span>
                     </div>
                     
-                    <button class="btn" id="logoutBtn">Logout</button>
+                    <button class="btn" id="logoutBtn"> 
+                        <form method="POST" action="{{ route('logout') }}" id="logout-form">
+                            @csrf
+                            <a href="{{ route('logout') }}" 
+                               class="nav-link"
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </form>
+                    </button>
                 </div>
             </div>
             

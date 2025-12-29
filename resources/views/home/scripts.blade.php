@@ -196,6 +196,43 @@
                 }
             });
         }
+// --- AUTH FORM SWITCHING ---
+function initAuthFormSwitching() {
+    const authForms = {
+        loginTab: 'loginForm',
+        signupTab: 'signupForm',
+        forgotPasswordLink: 'forgotPasswordForm',
+        backToLoginFromForgot: 'loginForm',
+        backToLoginFromReset: 'loginForm',
+        backToLoginFromConfirm: 'loginForm',
+        switchToSignup: 'signupForm',
+        switchToLogin: 'loginForm'
+    };
+
+    Object.keys(authForms).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('click', e => {
+                e.preventDefault();
+
+                // Hide all forms
+                document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+
+                // Show selected form
+                document.getElementById(authForms[id]).classList.add('active');
+
+                // Toggle active tab styles
+                if (id === 'loginTab' || id === 'signupTab') {
+                    document.getElementById('loginTab').classList.toggle('active', id === 'loginTab');
+                    document.getElementById('signupTab').classList.toggle('active', id === 'signupTab');
+                }
+            });
+        }
+    });
+}
+
+// Call this after DOMContentLoaded
+document.addEventListener('DOMContentLoaded', initAuthFormSwitching);
 
         // Initialize FAQ accordion functionality
         function initFAQ() {
@@ -595,4 +632,5 @@
 
         // Initialize the application when DOM is loaded
         document.addEventListener('DOMContentLoaded', init);
+        
     </script>

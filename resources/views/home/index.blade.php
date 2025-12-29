@@ -32,6 +32,7 @@
         @include('home.track-shipment')
         <!-- Contact Page -->
         @include('home.contact')
+        @include('home.auth')
         <!-- FAQ Page -->
         @include('home.faqs')
 
