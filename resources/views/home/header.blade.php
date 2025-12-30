@@ -3,7 +3,9 @@
         <a href="{{ route('home') }}" class="logo">
             Lilsley <span>Logistics</span>
         </a>
-
+ <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
         <nav id="mainNav">
             <ul>
                 <!-- Public links -->
@@ -12,7 +14,7 @@
                 <li><a href="#services" class="nav-link">Services</a></li>
                 <li><a href="#products" class="nav-link">Products</a></li>
                 <li><a href="#track" class="nav-link">Track Shipment</a></li>
-               
+
                 @auth
                     <!-- Cart button for non-admin users -->
                     @unless(auth()->user()->hasRole('admin'))
@@ -22,7 +24,7 @@
                         </a>
                     </li>
                     @endunless
-                    
+
                     <!-- Dashboard link based on role -->
                     <li>
                         @if(auth()->user()->hasRole('admin'))
@@ -35,18 +37,15 @@
                             </a>
                         @endif
                     </li>
-                    
+
                     <!-- Logout -->
-                    <li>
-                        <form method="POST" action="{{ route('logout') }}" id="logout-form">
-                            @csrf
-                            <a href="{{ route('logout') }}" 
-                               class="nav-link"
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </form>
-                    </li>
+                    <form method="POST" action="{{ route('logout') }}" id="logout-form" class="logout-form">
+    @csrf
+    <button type="submit" class="btn logout-btn">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+</form>
+
                 @else
                     <!-- Login link for guests -->
                     <li>

@@ -13,8 +13,9 @@ return new class extends Migration
             $table->string('name');
             $table->text('description');
             $table->string('icon')->nullable();
-            $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->string('category'); // Changed from category_id to category
             $table->string('image')->nullable();
+            $table->text('features')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });

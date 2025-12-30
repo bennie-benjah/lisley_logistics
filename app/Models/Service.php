@@ -13,8 +13,9 @@ class Service extends Model
         'name',
         'description',
         'icon',
-        'category_id',
+        'category', // Changed from category_id
         'image',
+        'features',
         'status'
     ];
 
@@ -24,7 +25,7 @@ class Service extends Model
         if ($this->image) {
             return asset('storage/' . $this->image);
         }
-        
+
         // Return a default service image
         return asset('images/default-service.png');
     }
@@ -39,26 +40,40 @@ class Service extends Model
             'Supply Chain Management' => 'fas fa-link',
             'Customs Clearance' => 'fas fa-passport',
             'Real-Time Tracking' => 'fas fa-satellite',
+            'Air Freight' => 'fas fa-plane-departure',
+            'Sea Freight' => 'fas fa-ship',
+            'Road Transportation' => 'fas fa-truck-moving',
+            'Cold Chain Logistics' => 'fas fa-snowflake',
+            'E-commerce Fulfillment' => 'fas fa-shopping-cart',
         ];
-        
+
         return $iconMap[$this->name] ?? ($this->icon ?: 'fas fa-box');
     }
 
-    public function getQuoteUrlAttribute()
+    // Accessor to get features as array
+    public function getFeaturesArrayAttribute()
     {
-        return route('services.quote', $this->id);
+        if (!$this->features) {
+            return [];
+        }
+        return array_map('trim', explode(',', $this->features));
     }
 
-    public function getTrackUrlAttribute()
+    // Mutator to store features as comma-separated string
+    public function setFeaturesAttribute($value)
     {
-        return route('shipments.track');
+        if (is_array($value)) {
+            $this->attributes['features'] = implode(',', $value);
+        } else {
+            $this->attributes['features'] = $value;
+        }
     }
 
-    // Relationships
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
+    // No more category relationship since it's just a string field
+    // public function category()
+    // {
+    //     return $this->belongsTo(Category::class);
+    // }
 
     // Scopes
     public function scopeActive($query)
@@ -66,17 +81,16 @@ class Service extends Model
         return $query->where('status', 'active');
     }
 
-    public function scopeByCategory($query, $categoryId)
+    public function scopeByCategory($query, $category)
     {
-        if ($categoryId) {
-            return $query->where('category_id', $categoryId);
+        if ($category) {
+            return $query->where('category', $category);
         }
         return $query;
     }
 
     public function scopeFeatured($query)
     {
-        // Could add a 'is_featured' field if needed
-        return $query->limit(6); // Show 6 featured services
+        return $query->limit(6);
     }
 }

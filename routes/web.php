@@ -5,10 +5,14 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ShipmentController;
-use App\Http\Controllers\AdminController;
+use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\ServicesController;
+use App\Http\Controllers\Admin\ProductsController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ShipmentUpdateController;
 use Illuminate\Support\Facades\Route;
+
 
 // Public routes - accessible to everyone
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -29,16 +33,16 @@ Route::post('/track-shipment', [ShipmentController::class, 'trackResult'])->name
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
 Route::get('/categories/main', [CategoryController::class, 'mainCategories'])->name('categories.main');
-
+Route::post('/quotes', [QuoteController::class, 'store'])->name('quotes.store');
 // =================== NORMAL USER ROUTES ===================
 // Protected with 'user' middleware - only for logged-in normal users (not admins)
 Route::middleware(['auth', 'verified', 'user'])->group(function () {
-    
+
     // Dashboard
     Route::get('/dashboard', function () {
         return view('home.index'); // Create this view for normal users
     })->name('dashboard');
-    
+
     // User profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -70,10 +74,10 @@ Route::post('/services/{id}/quote', [ServiceController::class, 'submitQuote'])->
 // =================== ADMIN ROUTES ===================
 // Protected with 'admin' middleware - only for admin users
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(function () {
-    
+
     // Admin dashboard
     Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    
+
     // Admin products management
     Route::get('/products', [AdminController::class, 'products'])->name('admin.products');
     Route::get('/products/create', [AdminController::class, 'createProduct'])->name('admin.products.create');
@@ -81,22 +85,32 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
     Route::get('/products/{id}/edit', [AdminController::class, 'editProduct'])->name('admin.products.edit');
     Route::put('/products/{id}', [AdminController::class, 'updateProduct'])->name('admin.products.update');
     Route::delete('/products/{id}', [AdminController::class, 'destroyProduct'])->name('admin.products.destroy');
-    
+
     // Admin categories management
     Route::resource('categories', CategoryController::class)->except(['show']);
     Route::get('categories/tree', [CategoryController::class, 'getCategoryTree'])->name('categories.tree');
     Route::get('categories/{id}/toggle-status', [CategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
     Route::get('categories/{id}/toggle-featured', [CategoryController::class, 'toggleFeatured'])->name('categories.toggle-featured');
     Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
+
+    // Add the index route explicitly
+    Route::get('services', [ServicesController::class, 'index'])->name('services.index');
     
-    // Admin services management
-    Route::get('/services', [AdminController::class, 'services'])->name('admin.services');
-    Route::get('/services/create', [AdminController::class, 'createService'])->name('admin.services.create');
-    Route::post('/services', [AdminController::class, 'storeService'])->name('admin.services.store');
-    Route::get('/services/{id}/edit', [AdminController::class, 'editService'])->name('admin.services.edit');
-    Route::put('/services/{id}', [AdminController::class, 'updateService'])->name('admin.services.update');
-    Route::delete('/services/{id}', [AdminController::class, 'destroyService'])->name('admin.services.destroy');
+    // Then your resource route (excluding index since we already defined it)
+    Route::resource('services', ServicesController::class)->except(['index']);
     
+    // Or if you want the resource to create all routes including index:
+    // Route::resource('services', ServicesController::class);
+    
+    // Your API routes...
+    Route::get('services/api/list', [ServicesController::class, 'apiIndex'])->name('services.api.index');
+    Route::get('services/api/{service}', [ServicesController::class, 'apiShow'])->name('services.api.show');
+    Route::post('services/{service}/toggle-status', [ServicesController::class, 'toggleStatus'])->name('services.toggle-status');
+    Route::post('services/bulk-action', [ServicesController::class, 'bulkAction'])->name('services.bulk-action');
+    Route::get('services/export', [ServicesController::class, 'export'])->name('services.export');
+Route::get('/products/data', [ProductsController::class, 'data']); // JSON data for JS
+    Route::post('/products', [ProductsController::class, 'store']);     // Add new product
+    Route::post('/products/{product}', [ProductsController::class, 'update']); // Update existing
     // Admin shipments management (can view ALL shipments)
     Route::get('/shipments', [AdminController::class, 'shipments'])->name('admin.shipments');
     Route::get('/shipments/create', [AdminController::class, 'createShipment'])->name('admin.shipments.create');
@@ -105,7 +119,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
     Route::get('/shipments/{id}/edit', [AdminController::class, 'editShipment'])->name('admin.shipments.edit');
     Route::put('/shipments/{id}', [AdminController::class, 'updateShipment'])->name('admin.shipments.update');
     Route::delete('/shipments/{id}', [AdminController::class, 'destroyShipment'])->name('admin.shipments.destroy');
-    
+
     // Admin shipment updates (full control)
     Route::resource('shipment-updates', ShipmentUpdateController::class)->except(['index', 'create', 'store']);
     Route::post('shipment-updates/bulk', [ShipmentUpdateController::class, 'bulkUpdate'])->name('shipment-updates.bulk');
@@ -113,20 +127,25 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
     Route::get('shipment-updates/export', [ShipmentUpdateController::class, 'export'])->name('shipment-updates.export');
     Route::get('shipment-updates/statistics', [ShipmentUpdateController::class, 'statistics'])->name('shipment-updates.statistics');
     Route::get('dashboard/recent-updates', [ShipmentUpdateController::class, 'recentUpdates'])->name('dashboard.recent-updates');
-    
+
     // Admin orders management
     Route::get('/orders', [AdminController::class, 'orders'])->name('admin.orders');
     Route::get('/orders/{id}', [AdminController::class, 'showOrder'])->name('admin.orders.show');
     Route::put('/orders/{id}/status', [AdminController::class, 'updateOrderStatus'])->name('admin.orders.status');
-    
-    // Admin customers management
-    Route::get('/customers', [AdminController::class, 'customers'])->name('admin.customers');
-    Route::get('/customers/{id}', [AdminController::class, 'showCustomer'])->name('admin.customers.show');
-    
+
+    // Customer routes (for users with 'user' role)
+    Route::get('customers', [AdminController::class, 'customers'])->name('customers.index');
+    Route::get('customers/api/list', [AdminController::class, 'apiCustomers'])->name('customers.api.list');
+     // Additional customer routes
+    Route::get('customers/{user}/details', [AdminController::class, 'customerDetails'])->name('customers.details');
+    Route::get('customers/{user}/edit', [AdminController::class, 'editCustomer'])->name('customers.edit');
+    Route::put('customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
+    Route::get('customers/chart-data', [AdminController::class, 'customerChartData'])->name('customers.chart-data');
+    Route::delete('customers/{user}', [AdminController::class, 'destroyCustomer'])->name('customers.destroy');
     // Admin reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('admin.reports');
     Route::get('/reports/generate/{type}', [AdminController::class, 'generateReport'])->name('admin.reports.generate');
-    
+
     // Admin settings
     Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
     Route::put('/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
