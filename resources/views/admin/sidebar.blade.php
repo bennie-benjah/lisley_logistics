@@ -2,7 +2,7 @@
             <div class="sidebar-header">
                 <div class="sidebar-logo">Lilsley <span>Logistics</span></div>
             </div>
-            
+
             <nav class="sidebar-menu">
                 <ul>
                     <li>
@@ -29,12 +29,12 @@
                             <span>Shipments</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="#" class="admin-nav-link" data-page="inventory">
-                            <i class="fas fa-boxes"></i>
-                            <span>Inventory</span>
-                        </a>
-                    </li>
+ <li>
+    <a href="#" class="admin-nav-link" data-page="quotes">
+        <i class="fas fa-file-invoice-dollar"></i>
+        <span>Quote Requests</span>
+    </a>
+</li>
                     <li>
                         <a href="#" class="admin-nav-link" data-page="orders">
                             <i class="fas fa-shopping-cart"></i>
@@ -53,15 +53,10 @@
                             <span>Reports</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="#" class="admin-nav-link" data-page="settings">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                    </li>
+
                 </ul>
             </nav>
-            
+
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="user-avatar">AJ</div>

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +14,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone'  // Add this field for customer phone
     ];
 
     protected $hidden = [
@@ -31,10 +31,74 @@ class User extends Authenticatable
      */
     protected static function booted(): void
     {
-        // Assign 'user' role automatically when a user is created
         static::created(function (User $user) {
-            // Use the 'user' role from Spatie
             $user->assignRole('user');
         });
+    }
+
+    // Add these relationships:
+
+    /**
+     * Get all shipments for this user
+     */
+    public function shipments()
+    {
+        return $this->hasMany(Shipment::class);
+    }
+
+    /**
+     * Get all quote requests for this user
+     */
+    public function quotes()
+    {
+        return $this->hasMany(Quote::class);
+    }
+
+    /**
+     * Get the count of active shipments
+     */
+    public function getActiveShipmentsCountAttribute()
+    {
+        return $this->shipments()->whereIn('status', ['processing', 'in_transit', 'out_for_delivery'])->count();
+    }
+
+    /**
+     * Get the count of delivered shipments
+     */
+    public function getDeliveredShipmentsCountAttribute()
+    {
+        return $this->shipments()->where('status', 'delivered')->count();
+    }
+
+    /**
+     * Get the count of pending quotes
+     */
+    public function getPendingQuotesCountAttribute()
+    {
+        return $this->quotes()->where('status', 'new')->count();
+    }
+
+    /**
+     * Get the count of total quotes
+     */
+    public function getTotalQuotesCountAttribute()
+    {
+        return $this->quotes()->count();
+    }
+
+    /**
+     * Scope to get only customers (users with customer role)
+     */
+    public function scopeCustomers($query)
+    {
+        return $query->role('customer');
+    }
+
+    /**
+     * Get user's role names as string
+     */
+    public function getRoleNamesAttribute()
+    {
+        return $this->roles->pluck('name')->implode(', ');
     }
 }

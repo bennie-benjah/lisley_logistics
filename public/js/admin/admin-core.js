@@ -44,6 +44,7 @@ class AdminCore {
             'dashboard': 'Dashboard Overview',
             'services': 'Services Management',
             'products': 'Products Management',
+            'quotes': 'Quote Requests Management', // Add this line
             'shipments': 'Shipment Management',
             'inventory': 'Inventory Management',
             'orders': 'Order Management',

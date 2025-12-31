@@ -10,6 +10,7 @@
     <script src="{{ asset('js/admin/services.js') }}"></script>
     <script src="{{ asset('js/admin/customers.js') }}"></script>
     <script src="{{ asset('js/admin/products.js') }}"></script>
+    <script src="{{ asset('js/admin/quotes-module.js') }}"></script>
     <script src="{{ asset('js/admin/shipments.js') }}"></script>
     <script src="{{ asset('js/admin/inventory.js') }}"></script>
     <script src="{{ asset('js/admin/orders.js') }}"></script>

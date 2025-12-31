@@ -16,9 +16,13 @@ class ServiceController extends Controller
         $services = Service::with('category')->active()->get();
         $categories = Category::where('is_active', true)->get();
         
-        return view('services.index', compact('services', 'categories'));
+        return view('home.services', compact('services', 'categories'));
     }
-
+public function servicesPage()
+    {
+        $services = Service::active()->get();
+        return view('home.services', compact('services'));
+    }
     /**
      * Display the specified resource.
      */
@@ -86,6 +90,37 @@ class ServiceController extends Controller
     /**
      * Search services
      */
+     public function apiServices(Request $request)
+    {
+        try {
+            $services = Service::active()
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'description' => $service->description,
+                        'icon' => $service->icon_class,
+                        'image' => $service->image,
+                        'category' => $service->category,
+                        'features' => $service->features_array,
+                        'status' => $service->status
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'services' => $services
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch services'
+            ], 500);
+        }
+    }
     public function search(Request $request)
     {
         $searchTerm = $request->input('search');

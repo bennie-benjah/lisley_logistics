@@ -1,18 +1,19 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\ProductsController;
+use App\Http\Controllers\Admin\ServicesController;
+use App\Http\Controllers\Admin\QuotesController;
+use App\Http\Controllers\Admin\CustomersController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ShipmentController;
-use App\Http\Controllers\QuoteController;
-use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\ServicesController;
-use App\Http\Controllers\Admin\ProductsController;
-use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ShipmentUpdateController;
 use Illuminate\Support\Facades\Route;
-
 
 // Public routes - accessible to everyone
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -23,7 +24,10 @@ Route::get('/products/{id}', [ProductController::class, 'show'])->name('products
 
 // Service routes (public)
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+Route::get('/services', [ServiceController::class, 'servicesPage']);
 Route::get('/services/{id}', [ServiceController::class, 'show'])->name('services.show');
+// Services API route
+Route::get('/api/services', [ServiceController::class, 'apiServices']);
 
 // Shipment tracking (public)
 Route::get('/track-shipment', [ShipmentController::class, 'track'])->name('shipments.track');
@@ -68,7 +72,7 @@ Route::middleware(['auth', 'verified', 'user'])->group(function () {
     Route::get('api/shipments/{id}/updates', [ShipmentUpdateController::class, 'apiUpdates'])->name('api.shipments.updates');
 
     Route::get('/services/{id}/quote', [ServiceController::class, 'showQuote'])->name('services.quote');
-Route::post('/services/{id}/quote', [ServiceController::class, 'submitQuote'])->name('services.quote.submit');
+    Route::post('/services/{id}/quote', [ServiceController::class, 'submitQuote'])->name('services.quote.submit');
 });
 
 // =================== ADMIN ROUTES ===================
@@ -77,14 +81,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
 
     // Admin dashboard
     Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-
-    // Admin products management
-    Route::get('/products', [AdminController::class, 'products'])->name('admin.products');
-    Route::get('/products/create', [AdminController::class, 'createProduct'])->name('admin.products.create');
-    Route::post('/products', [AdminController::class, 'storeProduct'])->name('admin.products.store');
-    Route::get('/products/{id}/edit', [AdminController::class, 'editProduct'])->name('admin.products.edit');
-    Route::put('/products/{id}', [AdminController::class, 'updateProduct'])->name('admin.products.update');
-    Route::delete('/products/{id}', [AdminController::class, 'destroyProduct'])->name('admin.products.destroy');
 
     // Admin categories management
     Route::resource('categories', CategoryController::class)->except(['show']);
@@ -95,23 +91,23 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
 
     // Add the index route explicitly
     Route::get('services', [ServicesController::class, 'index'])->name('services.index');
-    
+
     // Then your resource route (excluding index since we already defined it)
     Route::resource('services', ServicesController::class)->except(['index']);
-    
+
     // Or if you want the resource to create all routes including index:
     // Route::resource('services', ServicesController::class);
-    
+
     // Your API routes...
     Route::get('services/api/list', [ServicesController::class, 'apiIndex'])->name('services.api.index');
     Route::get('services/api/{service}', [ServicesController::class, 'apiShow'])->name('services.api.show');
     Route::post('services/{service}/toggle-status', [ServicesController::class, 'toggleStatus'])->name('services.toggle-status');
     Route::post('services/bulk-action', [ServicesController::class, 'bulkAction'])->name('services.bulk-action');
     Route::get('services/export', [ServicesController::class, 'export'])->name('services.export');
-Route::get('/products/data', [ProductsController::class, 'data']); // JSON data for JS
-    Route::post('/products', [ProductsController::class, 'store']);     // Add new product
-    Route::post('/products/{product}', [ProductsController::class, 'update']); // Update existing
-    // Admin shipments management (can view ALL shipments)
+    Route::get('/products/data', [ProductsController::class, 'data']);
+    Route::post('/products', [ProductsController::class, 'store']);
+    Route::put('/products/{product}', [ProductsController::class, 'update']);
+    Route::delete('/products/{product}', [ProductsController::class, 'destroy']); // Admin shipments management (can view ALL shipments)
     Route::get('/shipments', [AdminController::class, 'shipments'])->name('admin.shipments');
     Route::get('/shipments/create', [AdminController::class, 'createShipment'])->name('admin.shipments.create');
     Route::post('/shipments', [AdminController::class, 'storeShipment'])->name('admin.shipments.store');
@@ -127,22 +123,25 @@ Route::get('/products/data', [ProductsController::class, 'data']); // JSON data 
     Route::get('shipment-updates/export', [ShipmentUpdateController::class, 'export'])->name('shipment-updates.export');
     Route::get('shipment-updates/statistics', [ShipmentUpdateController::class, 'statistics'])->name('shipment-updates.statistics');
     Route::get('dashboard/recent-updates', [ShipmentUpdateController::class, 'recentUpdates'])->name('dashboard.recent-updates');
-
+// Quotes routes
+   
+    Route::get('/quotes/data', [QuotesController::class, 'data'])->name('admin.quotes.data');
+    Route::get('/quotes/stats', [QuotesController::class, 'stats'])->name('admin.quotes.stats');
+    Route::post('/quotes/{quote}/status', [QuotesController::class, 'updateStatus'])->name('admin.quotes.status');
+    Route::delete('/quotes/{quote}', [QuotesController::class, 'destroy'])->name('admin.quotes.destroy');
+    Route::post('/quotes/bulk-action', [QuotesController::class, 'bulkAction'])->name('admin.quotes.bulk');
     // Admin orders management
     Route::get('/orders', [AdminController::class, 'orders'])->name('admin.orders');
     Route::get('/orders/{id}', [AdminController::class, 'showOrder'])->name('admin.orders.show');
     Route::put('/orders/{id}/status', [AdminController::class, 'updateOrderStatus'])->name('admin.orders.status');
 
-    // Customer routes (for users with 'user' role)
-    Route::get('customers', [AdminController::class, 'customers'])->name('customers.index');
-    Route::get('customers/api/list', [AdminController::class, 'apiCustomers'])->name('customers.api.list');
-     // Additional customer routes
-    Route::get('customers/{user}/details', [AdminController::class, 'customerDetails'])->name('customers.details');
-    Route::get('customers/{user}/edit', [AdminController::class, 'editCustomer'])->name('customers.edit');
-    Route::put('customers/{user}', [AdminController::class, 'updateCustomer'])->name('customers.update');
-    Route::get('customers/chart-data', [AdminController::class, 'customerChartData'])->name('customers.chart-data');
-    Route::delete('customers/{user}', [AdminController::class, 'destroyCustomer'])->name('customers.destroy');
-    // Admin reports
+   // Add to your admin routes group
+Route::get('/customers', [CustomersController::class, 'index'])->name('admin.customers');
+Route::get('/customers/data', [CustomersController::class, 'data']);
+Route::get('/customers/stats', [CustomersController::class, 'stats']);
+Route::post('/customers', [CustomersController::class, 'store']);
+Route::put('/customers/{customer}', [CustomersController::class, 'update']);
+Route::delete('/customers/{customer}', [CustomersController::class, 'destroy']);    // Admin reports
     Route::get('/reports', [AdminController::class, 'reports'])->name('admin.reports');
     Route::get('/reports/generate/{type}', [AdminController::class, 'generateReport'])->name('admin.reports.generate');
 
@@ -153,7 +152,7 @@ Route::get('/products/data', [ProductsController::class, 'data']); // JSON data 
 
 // =================== AUTH ROUTES ===================
 // These use Laravel's built-in auth middleware
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 // Fallback route for 404 pages
 Route::fallback(function () {
