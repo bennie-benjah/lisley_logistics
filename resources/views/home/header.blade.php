@@ -3,9 +3,9 @@
         <a href="{{ route('home') }}" class="logo">
             Lilsley <span>Logistics</span>
         </a>
- <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <i class="fas fa-bars"></i>
-            </button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+        </button>
         <nav id="mainNav">
             <ul>
                 <!-- Public links -->
@@ -18,34 +18,20 @@
                 @auth
                     <!-- Cart button for non-admin users -->
                     @unless(auth()->user()->hasRole('admin'))
-                    <li>
+                    <li class="cart-icon-item"> <!-- Add this class -->
                         <a href="{{ route('cart.index') }}" class="nav-link">
                             <i class="fas fa-shopping-cart"></i> <span id="cartCount">0</span>
                         </a>
                     </li>
                     @endunless
 
-                    <!-- Dashboard link based on role -->
-                    <li>
-                        @if(auth()->user()->hasRole('admin'))
-                            <a href="{{ route('admin.dashboard') }}" class="nav-link">
-                                <i class="fas fa-tachometer-alt"></i> Admin Panel
-                            </a>
-                        @else
-                            <a href="{{ route('dashboard') }}" class="nav-link">
-                                <i class="fas fa-user-circle"></i> My Account
-                            </a>
-                        @endif
-                    </li>
-
                     <!-- Logout -->
                     <form method="POST" action="{{ route('logout') }}" id="logout-form" class="logout-form">
-    @csrf
-    <button type="submit" class="btn logout-btn">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </button>
-</form>
-
+                        @csrf
+                        <button type="submit" class="btn logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </form>
                 @else
                     <!-- Login link for guests -->
                     <li>

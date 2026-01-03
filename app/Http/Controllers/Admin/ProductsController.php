@@ -16,8 +16,9 @@ class ProductsController extends Controller
                 'id'             => $p->id,
                 'name'           => $p->name,
                 'description'    => $p->description,
-                'category_name'  => $p->category->name,
-                'category_slug'  => strtolower($p->category->name),
+                'category_name'  => optional($p->category)->name,
+                'category_slug'  => $p->category_slug,
+
                 'price'          => (float) $p->price,
 
                 'status'         => $p->status,
@@ -154,31 +155,31 @@ class ProductsController extends Controller
         }
     }
     // Add this method to your ProductsController class
-public function destroy(Product $product)
-{
-    try {
-        // Delete the product image if it exists
-        if ($product->image) {
-            $imagePath = public_path('images/products/' . $product->image);
-            if (File::exists($imagePath)) {
-                File::delete($imagePath);
+    public function destroy(Product $product)
+    {
+        try {
+            // Delete the product image if it exists
+            if ($product->image) {
+                $imagePath = public_path('images/products/' . $product->image);
+                if (File::exists($imagePath)) {
+                    File::delete($imagePath);
+                }
             }
+
+            // Delete the product
+            $product->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Product deleted successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Product delete error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete product: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Delete the product
-        $product->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Product deleted successfully'
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Product delete error: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to delete product: ' . $e->getMessage()
-        ], 500);
     }
-}
 }

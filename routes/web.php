@@ -16,10 +16,13 @@ use App\Http\Controllers\ShipmentUpdateController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes - accessible to everyone
+// Public home page
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+
 // Product routes (public)
-Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+// Public products page
+Route::get('/products', [HomeController::class, 'products'])->name('products');
 Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
 
 // Service routes (public)
@@ -35,6 +38,10 @@ Route::post('/track-shipment', [ShipmentController::class, 'trackResult'])->name
 
 // Public category routes
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+
+
+Route::get('/api/categories', [CategoryController::class, 'apiIndex']);
+
 Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
 Route::get('/categories/main', [CategoryController::class, 'mainCategories'])->name('categories.main');
 Route::post('/quotes', [QuoteController::class, 'store'])->name('quotes.store');
@@ -43,10 +50,9 @@ Route::post('/quotes', [QuoteController::class, 'store'])->name('quotes.store');
 Route::middleware(['auth', 'verified', 'user'])->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('home.index'); // Create this view for normal users
-    })->name('dashboard');
-
+ Route::get('/dashboard', [HomeController::class, 'products'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
     // User profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -117,14 +123,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
     Route::delete('/shipments/{id}', [AdminController::class, 'destroyShipment'])->name('admin.shipments.destroy');
 
     // Admin shipment updates (full control)
-    Route::resource('shipment-updates', ShipmentUpdateController::class)->except(['index', 'create', 'store']);
-    Route::post('shipment-updates/bulk', [ShipmentUpdateController::class, 'bulkUpdate'])->name('shipment-updates.bulk');
-    Route::get('shipment-updates/driver/{driverId}', [ShipmentUpdateController::class, 'byDriver'])->name('shipment-updates.by-driver');
-    Route::get('shipment-updates/export', [ShipmentUpdateController::class, 'export'])->name('shipment-updates.export');
-    Route::get('shipment-updates/statistics', [ShipmentUpdateController::class, 'statistics'])->name('shipment-updates.statistics');
-    Route::get('dashboard/recent-updates', [ShipmentUpdateController::class, 'recentUpdates'])->name('dashboard.recent-updates');
-// Quotes routes
-   
+   Route::get('/shipments', [ShipmentController::class, 'indexApi']);
+    Route::get('/customers', [CustomersController::class, 'indexApi']); // Quotes routes
+
     Route::get('/quotes/data', [QuotesController::class, 'data'])->name('admin.quotes.data');
     Route::get('/quotes/stats', [QuotesController::class, 'stats'])->name('admin.quotes.stats');
     Route::post('/quotes/{quote}/status', [QuotesController::class, 'updateStatus'])->name('admin.quotes.status');

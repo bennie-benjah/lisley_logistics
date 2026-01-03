@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-
+use Illuminate\Validation\Rule;
 class CategoryController extends Controller
 {
     /**
@@ -19,7 +21,7 @@ class CategoryController extends Controller
                              ->orderBy('display_order')
                              ->orderBy('name')
                              ->paginate(20);
-        
+
         return view('categories.index', compact('categories'));
     }
 
@@ -31,7 +33,7 @@ class CategoryController extends Controller
         $parentCategories = Category::whereNull('parent_id')
                                    ->orderBy('name')
                                    ->get();
-        
+
         return view('categories.create', compact('parentCategories'));
     }
 
@@ -57,16 +59,16 @@ class CategoryController extends Controller
 
         // Generate slug from name
         $validated['slug'] = Category::generateSlug($validated['name']);
-        
+
         // Handle image upload
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('categories', 'public');
             $validated['image'] = $imagePath;
         }
-        
+
         // Add created by user
         $validated['created_by'] = Auth::id();
-        
+
         Category::create($validated);
 
         return redirect()->route('categories.index')
@@ -81,20 +83,20 @@ class CategoryController extends Controller
         $category = Category::with(['products', 'services', 'children', 'parent'])
                            ->where('slug', $slug)
                            ->firstOrFail();
-        
+
         // Get products and services from this category and all subcategories
         $categoryIds = $category->descendant_ids;
-        
+
         $products = Product::whereIn('category_id', $categoryIds)
                           ->where('status', 'active')
                           ->orderBy('created_at', 'desc')
                           ->paginate(12, ['*'], 'products_page');
-        
+
         $services = Service::whereIn('category_id', $categoryIds)
                           ->where('status', 'active')
                           ->orderBy('created_at', 'desc')
                           ->paginate(12, ['*'], 'services_page');
-        
+
         return view('categories.show', compact('category', 'products', 'services'));
     }
 
@@ -108,7 +110,7 @@ class CategoryController extends Controller
                                    ->whereNull('parent_id')
                                    ->orderBy('name')
                                    ->get();
-        
+
         return view('categories.edit', compact('category', 'parentCategories'));
     }
 
@@ -118,7 +120,7 @@ class CategoryController extends Controller
     public function update(Request $request, $id)
     {
         $category = Category::findOrFail($id);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $id,
             'description' => 'nullable|string',
@@ -138,18 +140,18 @@ class CategoryController extends Controller
         if ($category->name !== $validated['name']) {
             $validated['slug'] = Category::generateSlug($validated['name']);
         }
-        
+
         // Handle image upload
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($category->image) {
                 Storage::disk('public')->delete($category->image);
             }
-            
+
             $imagePath = $request->file('image')->store('categories', 'public');
             $validated['image'] = $imagePath;
         }
-        
+
         $category->update($validated);
 
         return redirect()->route('categories.index')
@@ -162,18 +164,18 @@ class CategoryController extends Controller
     public function destroy($id)
     {
         $category = Category::findOrFail($id);
-        
+
         // Check if category can be deleted
         if (!$category->canBeDeleted()) {
             return redirect()->route('categories.index')
                              ->with('error', 'Cannot delete category. It contains products, services, or subcategories.');
         }
-        
+
         // Delete image if exists
         if ($category->image) {
             Storage::disk('public')->delete($category->image);
         }
-        
+
         $category->delete();
 
         return redirect()->route('categories.index')
@@ -186,7 +188,7 @@ class CategoryController extends Controller
     public function getCategories(Request $request)
     {
         $categories = Category::active()->ordered()->get();
-        
+
         $options = [];
         foreach ($categories as $category) {
             $prefix = str_repeat('-- ', $category->depth);
@@ -195,7 +197,7 @@ class CategoryController extends Controller
                 'text' => $prefix . $category->name
             ];
         }
-        
+
         return response()->json($options);
     }
 
@@ -205,7 +207,7 @@ class CategoryController extends Controller
     public function getCategoryTree()
     {
         $tree = Category::getTreeStructure();
-        
+
         return response()->json($tree);
     }
 
@@ -218,7 +220,7 @@ class CategoryController extends Controller
                              ->active()
                              ->ordered()
                              ->get();
-        
+
         return view('categories.main', compact('categories'));
     }
 
@@ -228,13 +230,13 @@ class CategoryController extends Controller
     public function search(Request $request)
     {
         $searchTerm = $request->input('search');
-        
+
         $categories = Category::where('name', 'like', "%{$searchTerm}%")
                              ->orWhere('description', 'like', "%{$searchTerm}%")
                              ->orderBy('display_order')
                              ->orderBy('name')
                              ->paginate(20);
-        
+
         return view('categories.search', compact('categories', 'searchTerm'));
     }
 
@@ -246,9 +248,9 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
         $category->is_active = !$category->is_active;
         $category->save();
-        
+
         $status = $category->is_active ? 'activated' : 'deactivated';
-        
+
         return back()->with('success', "Category {$status} successfully!");
     }
 
@@ -260,9 +262,9 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
         $category->is_featured = !$category->is_featured;
         $category->save();
-        
+
         $status = $category->is_featured ? 'marked as featured' : 'removed from featured';
-        
+
         return back()->with('success', "Category {$status} successfully!");
     }
 
@@ -272,11 +274,18 @@ class CategoryController extends Controller
     public function reorder(Request $request)
     {
         $order = $request->input('order');
-        
+
         foreach ($order as $index => $categoryId) {
             Category::where('id', $categoryId)->update(['display_order' => $index]);
         }
-        
+
         return response()->json(['success' => true]);
     }
+
+    public function apiIndex()
+{
+    return Category::select('id', 'name', 'slug')->get();
+}
+
+
 }

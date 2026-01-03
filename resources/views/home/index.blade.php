@@ -9,6 +9,11 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap"
         rel="stylesheet">
+        <script>
+        // Make sure data is available globally
+        window.productsData = @json($productsArray ?? []);
+        window.categoriesData = @json($categoriesArray ?? []);
+    </script>
     @include('home.styles')
 </head>
 
@@ -31,7 +36,7 @@
         <!-- Track Shipment Page -->
         @include('home.track-shipment')
         <!-- Contact Page -->
-        @include('home.contact')
+        @include('home.send-quote')
         @include('home.auth')
         <!-- FAQ Page -->
         @include('home.faqs')

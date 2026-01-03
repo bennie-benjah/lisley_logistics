@@ -27,10 +27,10 @@
         <label for="service">Service Needed</label>
         <select id="service" name="service" required>
             <option value="">Select a service</option>
-            <option value="freight">Freight Forwarding</option>
-            <option value="warehousing">Warehousing</option>
-            <option value="last-mile">Last-Mile Delivery</option>
-            <option value="tracking">Shipment Tracking</option>
+            <option value="freight forwading">Freight Forwarding</option>
+            <option value="warehousing and storage">Warehousing</option>
+            <option value="last-mile delivery">Last-Mile Delivery</option>
+            <option value="shipment tracking">Shipment Tracking</option>
             <option value="other">Other</option>
         </select>
     </div>

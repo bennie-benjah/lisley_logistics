@@ -1795,5 +1795,84 @@
 .logout-btn:active {
     transform: translateY(0);
 }
+/* Notification Styles */
+.custom-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 9999;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+    min-width: 300px;
+    max-width: 400px;
+}
 
+.custom-notification.show {
+    transform: translateX(0);
+}
+
+.custom-notification.success {
+    border-left: 4px solid #28a745;
+}
+
+.custom-notification.warning {
+    border-left: 4px solid #ffc107;
+}
+
+.custom-notification.info {
+    border-left: 4px solid #17a2b8;
+}
+
+.custom-notification.error {
+    border-left: 4px solid #dc3545;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notification-content i {
+    font-size: 1.2rem;
+}
+
+.notification-content i.fa-check-circle {
+    color: #28a745;
+}
+
+.notification-content i.fa-exclamation-triangle {
+    color: #ffc107;
+}
+
+.notification-content i.fa-info-circle {
+    color: #17a2b8;
+}
+
+.notification-content span {
+    flex: 1;
+    font-size: 0.95rem;
+}
+
+.close-notification {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+}
+
+.close-notification:hover {
+    color: #333;
+}
+.cart-icon-item {
+    margin-right: 20px; /* Space between cart and logout */
+}
 </style>
