@@ -1609,9 +1609,48 @@ input[type="datetime-local"] {
     .table-responsive {
         overflow-x: auto;
     }
-    
+
     .table-responsive table {
         min-width: 1000px;
     }
 }
+/* .management-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+} */
+
+.product-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+}
+
+.product-card img {
+    max-width: 150px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.product-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.product-actions .btn {
+    padding: 5px 10px;
+    font-size: 0.9rem;
+}
+
     </style>

@@ -1,320 +1,278 @@
+// ==================== PRODUCTS MODULE ====================
 class ProductsModule {
     constructor(admin) {
         this.admin = admin;
-        this.productsGrid = document.getElementById("productsGrid");
-        this.addBtn = document.getElementById("addProductBtn");
-        this.products = []; // Will hold fetched products
-        this.init();
+        this.csrfToken = admin.csrfToken;
+        this.urls = {
+            apiIndex: "/admin/products/api/list",
+            apiShow: (id) => `/admin/products/api/${id}`,
+            store: "/admin/products",
+            update: (id) => `/admin/products/${id}`,
+            destroy: (id) => `/admin/products/${id}`,
+        };
     }
 
+    // ==================== INITIALIZATION ====================
     init() {
-        this.fetchProducts();
-        this.initTabs();
-        this.addBtn?.addEventListener("click", () => this.showAddModal());
+        console.log("Products module initialized");
+        this.initEventListeners();
+        this.loadProducts();
     }
 
-    async fetchProducts() {
+    // ==================== EVENT LISTENERS ====================
+    initEventListeners() {
+        const addBtn = document.getElementById("addProductBtn");
+        if (addBtn) addBtn.addEventListener("click", () => this.showProductModal());
+
+        // Tab filtering
+        document.querySelectorAll("#productsPage .tab").forEach(tab => {
+            tab.addEventListener("click", () => {
+                const tabId = tab.getAttribute("data-tab");
+                this.filterProducts(tabId);
+            });
+        });
+    }
+
+    // ==================== DATA FETCHING ====================
+    async loadProducts() {
         try {
-            const res = await fetch("/admin/products/data");
-            this.products = await res.json();
-            this.renderProducts(this.products);
-        } catch (err) {
-            console.error("Failed to fetch products:", err);
-            this.admin.showNotification("Failed to load products", "error");
+            const response = await fetch(this.urls.apiIndex, {
+                headers: {
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": this.csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch products");
+            const products = await response.json();
+            this.renderProducts(products);
+        } catch (error) {
+            console.error("Error:", error);
+            this.showNotification("Failed to load products", "error");
+            this.showEmptyGrid("Unable to load products.");
         }
     }
 
-
-    // In renderProducts method - fix image path logic
-     renderProducts(products) {
-        if (!this.productsGrid) return;
-
-        this.productsGrid.innerHTML = products
-            .map((p) => {
-                // Determine image path correctly
-                let imagePath;
-                if (p.image) {
-                    if (p.image.startsWith("http")) {
-                        imagePath = p.image;
-                    } else if (p.image.includes("/")) {
-                        // If it already contains path, use as is
-                        imagePath = p.image.startsWith("/")
-                            ? p.image
-                            : "/" + p.image;
-                    } else {
-                        // Just filename, prepend with correct path
-                        imagePath = "/images/products/" + p.image;
-                    }
-                } else {
-                    imagePath = "/images/placeholder.jpg"; // Add a placeholder
-                }
-
-                return `
-            <div class="card product-card">
-                <img width=200 height=200 src="${imagePath}" alt="${
-                    p.name
-                }" class="product-img">
-                <h4>${p.name}</h4>
-                <p>${p.description}</p>
-                <p><strong>Category:</strong> ${p.category_name}</p>
-                <p><strong>Price:</strong> $${p.price.toFixed(2)}</p>
-                <p><strong>Status:</strong> ${p.status}</p>
-                <div class="product-actions">
-                    <button class="btn btn-edit" data-id="${p.id}">Edit</button>
-                    <button class="btn btn-delete" data-id="${p.id}">Delete</button>
-                </div>
-            </div>
-        `;
-            })
-            .join("");
-
-        // Add event listeners for edit buttons
-        this.productsGrid.querySelectorAll(".btn-edit").forEach((btn) => {
-            btn.addEventListener("click", (e) =>
-                this.showEditModal(e.target.dataset.id)
-            );
+    async fetchProductData(productId) {
+        const response = await fetch(this.urls.apiShow(productId), {
+            headers: {
+                Accept: "application/json",
+                "X-CSRF-TOKEN": this.csrfToken,
+                "X-Requested-With": "XMLHttpRequest",
+            },
         });
-
-        // Add event listeners for delete buttons
-        this.productsGrid.querySelectorAll(".btn-delete").forEach((btn) => {
-            btn.addEventListener("click", (e) =>
-                this.deleteProduct(e.target.dataset.id)
-            );
-        });
+        if (!response.ok) throw new Error("Failed to fetch product");
+        return await response.json();
     }
 
-    // Add this delete method to your class
-    async deleteProduct(productId) {
-        // Confirm before deleting
-        if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+    // ==================== UI RENDERING ====================
+    renderProducts(products) {
+        const grid = document.getElementById("productsGrid");
+        if (!grid) return;
+
+        grid.innerHTML = "";
+
+        if (!products || products.length === 0) {
+            this.showEmptyGrid('No products found. Click "Add New Product" to create one.');
             return;
         }
 
-        try {
-            const response = await fetch(`/admin/products/${productId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': this.admin.csrfToken,
-                    'Accept': 'application/json'
-                }
+        products.forEach(p => {
+            const item = document.createElement("div");
+            item.className = "product-item";
+            item.setAttribute("data-category", p.category ? p.category.name.toLowerCase() : "");
+            item.setAttribute("data-status", p.status);
+
+            item.innerHTML = `
+                <div class="product-header">
+                    <div class="product-actions">
+                        <button class="btn btn-edit" data-action="edit" data-id="${p.id}">Edit</button>
+                        <button class="btn btn-delete" data-action="delete" data-id="${p.id}">Delete</button>
+                    </div>
+                </div>
+                <div class="product-content">
+                    <h4>${p.name}</h4>
+                    <p>${p.description}</p>
+                    <p>Category: ${p.category ? p.category.name : "None"}</p>
+                    <p>Price: $${p.price}</p>
+                    <p>Stock: ${p.stock_quantity}</p>
+                    ${p.image ? `<img src="${p.image}" style="max-width:100px;"/>` : ""}
+                    <p>Status: ${p.status}</p>
+                </div>
+            `;
+
+            // Button actions
+            item.querySelectorAll("[data-action]").forEach(btn => {
+                const action = btn.getAttribute("data-action");
+                const id = btn.getAttribute("data-id");
+                btn.addEventListener("click", e => {
+                    e.stopPropagation();
+                    if (action === "edit") this.editProduct(id);
+                    else if (action === "delete") this.deleteProduct(id);
+                });
             });
 
-            const result = await response.json();
-
-            if (result.success) {
-                this.admin.showNotification(result.message || 'Product deleted successfully', 'success');
-                // Refresh the products list
-                this.fetchProducts();
-            } else {
-                throw new Error(result.message || 'Failed to delete product');
-            }
-
-        } catch (error) {
-            console.error('Error deleting product:', error);
-            this.admin.showNotification(error.message || 'Failed to delete product', 'error');
-        }
-    }
-
-    initTabs() {
-        const tabs = document.querySelectorAll("#productsPage .tab");
-        tabs.forEach((tab) => {
-            tab.addEventListener("click", () => {
-                tabs.forEach((t) => t.classList.remove("active"));
-                tab.classList.add("active");
-                const filter = tab.dataset.tab;
-                const filtered =
-                    filter === "all"
-                        ? this.products
-                        : this.products.filter(
-                              (p) => p.category_slug === filter
-                          );
-                this.renderProducts(filtered);
-            });
+            grid.appendChild(item);
         });
     }
 
-    // ------------------- ADD PRODUCT -------------------
-   showAddModal() {
-    const content = this.productFormTemplate();
-    this.admin.showModal("Add New Product", content, async () => {
-        const form = document.getElementById("productForm");
-        if (!form) return false;
+    showEmptyGrid(message) {
+        const grid = document.getElementById("productsGrid");
+        if (!grid) return;
 
-        const formData = new FormData(form);
+        grid.innerHTML = `
+            <div class="empty-state" style="text-align:center; padding:50px;">
+                <h3>No Products Found</h3>
+                <p>${message}</p>
+                <button class="btn btn-primary" id="addNewProductBtn">Add New Product</button>
+            </div>
+        `;
 
-        // Debug: Log form data
-        console.log('=== FORM DATA DEBUG ===');
-        for (let [key, value] of formData.entries()) {
-            if (value instanceof File) {
-                console.log(`${key}: File - ${value.name} (${value.size} bytes, ${value.type})`);
+        const addBtn = document.getElementById("addNewProductBtn");
+        if (addBtn) addBtn.addEventListener("click", () => this.showProductModal());
+    }
+
+    filterProducts(category) {
+        const items = document.querySelectorAll(".product-item");
+        items.forEach(item => {
+            if (category === "all" || item.getAttribute("data-category") === category) {
+                item.style.display = "block";
             } else {
-                console.log(`${key}: ${value}`);
+                item.style.display = "none";
             }
+        });
+    }
+
+    // ==================== MODAL OPERATIONS ====================
+    showProductModal(productId = null) {
+        const isEdit = productId !== null;
+        if (isEdit) {
+            this.fetchProductData(productId)
+                .then(product => this.showProductForm(product, isEdit))
+                .catch(err => this.showNotification("Failed to load product", "error"));
+        } else {
+            this.showProductForm(null, false);
         }
+    }
+
+    showProductForm(product, isEdit) {
+        const content = `
+            <form id="productForm">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="productName" value="${product ? product.name : ""}" required>
+                </div>
+                <div class="form-group">
+                    <label>Category ID *</label>
+                    <input type="number" id="productCategory" value="${product ? product.category_id : ""}" required>
+                </div>
+                <div class="form-group">
+                    <label>Price *</label>
+                    <input type="number" id="productPrice" value="${product ? product.price : ""}" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Quantity *</label>
+                    <input type="number" id="productStock" value="${product ? product.stock_quantity : ""}" required>
+                </div>
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select id="productStatus">
+                        <option value="active" ${product && product.status === "active" ? "selected" : ""}>Active</option>
+                        <option value="inactive" ${product && product.status === "inactive" ? "selected" : ""}>Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="productDescription">${product ? product.description : ""}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Image</label>
+                    <input type="file" id="productImage" accept="image/*">
+                    ${product && product.image ? `<img src="${product.image}" style="max-width:100px;">` : ""}
+                </div>
+            </form>
+        `;
+
+        this.admin.showModal(isEdit ? "Edit Product" : "Add Product", content, () => this.handleProductSubmit(isEdit, product?.id));
+    }
+
+    async handleProductSubmit(isEdit, productId = null) {
+        const formData = new FormData();
+        formData.append("name", document.getElementById("productName").value);
+        formData.append("category_id", document.getElementById("productCategory").value);
+        formData.append("price", document.getElementById("productPrice").value);
+        formData.append("stock_quantity", document.getElementById("productStock").value);
+        formData.append("status", document.getElementById("productStatus").value);
+        formData.append("description", document.getElementById("productDescription").value);
+
+        const file = document.getElementById("productImage").files[0];
+        if (file) formData.append("image", file);
+
+        if (this.csrfToken) formData.append("_token", this.csrfToken);
+        if (isEdit) formData.append("_method", "PUT");
 
         try {
-            const res = await fetch("/admin/products", {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": this.admin.csrfToken,
-                },
-                body: formData,
-            });
+            const endpoint = isEdit ? this.urls.update(productId) : this.urls.store;
+            const res = await fetch(endpoint, { method: "POST", body: formData });
+            const data = await res.json();
 
-            const result = await res.json();
+            if (!res.ok) throw new Error(data.message || "Error saving product");
 
-            if (!res.ok) {
-                // If validation error, show specific errors
-                if (res.status === 422 && result.errors) {
-                    let errorMessages = [];
-                    for (const field in result.errors) {
-                        errorMessages.push(`${field}: ${result.errors[field].join(', ')}`);
-                    }
-                    throw new Error(`Validation failed:\n${errorMessages.join('\n')}`);
-                }
-                throw new Error(result.message || `Server error: ${res.status} ${res.statusText}`);
-            }
-
-            if (result.success === false) {
-                throw new Error(result.message || 'Failed to add product');
-            }
-
-            this.admin.showNotification(result.message || "Product added successfully");
-            this.fetchProducts();
+            this.showNotification(isEdit ? "Product updated!" : "Product added!", "success");
+            await this.loadProducts();
             return true;
-
         } catch (err) {
-            console.error("Add product error:", err);
-            this.admin.showNotification(err.message, "error");
+            console.error(err);
+            this.showNotification(err.message, "error");
             return false;
         }
-    });
-}
-    // ------------------- EDIT PRODUCT -------------------
-    showEditModal(productId) {
-        const product = this.products.find((p) => p.id == productId);
-        if (!product) return;
-
-        const content = this.productFormTemplate(product);
-        this.admin.showModal("Edit Product", content, async () => {
-            const form = document.getElementById("productForm");
-            if (!form) return false;
-
-            const formData = new FormData(form);
-
-            try {
-                const res = await fetch(`/admin/products/${productId}`, {
-                    method: "PUT", // Changed to PUT
-                    headers: {
-                        "X-CSRF-TOKEN": this.admin.csrfToken,
-                        // Don't set Content-Type - browser will set it with boundary
-                    },
-                    body: formData,
-                });
-
-                const result = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(
-                        result.message || "Failed to update product"
-                    );
-                }
-
-                this.admin.showNotification(
-                    result.message || "Product updated successfully"
-                );
-                this.fetchProducts();
-                return true;
-            } catch (err) {
-                console.error("Update error:", err);
-                this.admin.showNotification(
-                    err.message || "Failed to update product",
-                    "error"
-                );
-                return false;
-            }
-        });
     }
 
-    // In productFormTemplate method - fix image preview
-    productFormTemplate(product = {}) {
-        // Determine image path for display
-        let imagePreview = "";
-        if (product.image) {
-            let imagePath;
-            if (product.image.startsWith("http")) {
-                imagePath = product.image;
-            } else if (product.image.includes("/")) {
-                imagePath = product.image.startsWith("/")
-                    ? product.image
-                    : "/" + product.image;
-            } else {
-                imagePath = "/images/products/" + product.image;
-            }
-            imagePreview = `<p>Current Image: <img src="${imagePath}" width="100" style="margin-top: 10px;"></p>`;
+    editProduct(id) {
+        this.showProductModal(id);
+    }
+
+    async deleteProduct(id) {
+        if (!confirm("Are you sure you want to delete this product?")) return;
+
+        try {
+            const res = await fetch(this.urls.destroy(id), {
+                method: "DELETE",
+                headers: {
+                    "X-CSRF-TOKEN": this.csrfToken,
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                },
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to delete");
+
+            this.showNotification("Product deleted!", "success");
+            await this.loadProducts();
+        } catch (err) {
+            console.error(err);
+            this.showNotification(err.message, "error");
         }
+    }
 
-        return `
-        <form id="productForm" enctype="multipart/form-data">
-            <label>Product Name *</label>
-            <input type="text" name="name" value="${
-                product.name || ""
-            }" required>
-
-            <label>Category *</label>
-            <select name="category_id" required>
-                <option value="">Select Category</option>
-                <option value="1" ${
-                    product.category_id == 1 ? "selected" : ""
-                }>Shipping</option>
-                <option value="2" ${
-                    product.category_id == 2 ? "selected" : ""
-                }>Storage</option>
-                <option value="3" ${
-                    product.category_id == 3 ? "selected" : ""
-                }>Delivery</option>
-                <option value="4" ${
-                    product.category_id == 4 ? "selected" : ""
-                }>Management</option>
-                <option value="5" ${
-                    product.category_id == 5 ? "selected" : ""
-                }>International</option>
-                <option value="6" ${
-                    product.category_id == 6 ? "selected" : ""
-                }>Technology</option>
-            </select>
-
-            <label>Price *</label>
-            <input type="number" step="0.01" name="price" value="${
-                product.price || ""
-            }" required>
-
-            <label>Status *</label>
-            <select name="status" required>
-                <option value="active" ${
-                    product.status == "active" ? "selected" : ""
-                }>Active</option>
-                <option value="inactive" ${
-                    product.status == "inactive" ? "selected" : ""
-                }>Inactive</option>
-            </select>
-
-            <label>Description *</label>
-            <textarea name="description" required>${
-                product.description || ""
-            }</textarea>
-
-            <label>Stock Quantity *</label>
-            <input type="number" name="stock_quantity" value="${
-                product.stock_quantity || 0
-            }" required>
-
-            <label>Image</label>
-            <input type="file" name="image" accept="image/*">
-            ${imagePreview}
-        </form>
-    `;
+    // ==================== NOTIFICATIONS ====================
+    showNotification(msg, type = "success") {
+        if (this.admin && this.admin.showNotification) this.admin.showNotification(msg, type);
+        else alert(`${type}: ${msg}`);
     }
 }
 
+// ==================== GLOBAL ====================
 window.ProductsModule = ProductsModule;
+
+// Auto-initialize
+document.addEventListener("DOMContentLoaded", () => {
+    const productsPage = document.getElementById("productsPage");
+    if (productsPage && !productsPage.classList.contains("hidden")) {
+        const admin = window.Admin;
+        window.productsModule = new ProductsModule(admin);
+        window.productsModule.init();
+    }
+});

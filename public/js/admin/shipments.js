@@ -107,7 +107,7 @@ class ShipmentsManager {
             
         } catch (error) {
             console.error('Error loading shipment:', error);
-            alert('Failed to load shipment data');
+            // alert('Failed to load shipment data');
         }
     }
 

@@ -110,10 +110,20 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
     Route::post('services/{service}/toggle-status', [ServicesController::class, 'toggleStatus'])->name('services.toggle-status');
     Route::post('services/bulk-action', [ServicesController::class, 'bulkAction'])->name('services.bulk-action');
     Route::get('services/export', [ServicesController::class, 'export'])->name('services.export');
-    Route::get('/products/data', [ProductsController::class, 'data']);
-    Route::post('/products', [ProductsController::class, 'store']);
-    Route::put('/products/{product}', [ProductsController::class, 'update']);
-    Route::delete('/products/{product}', [ProductsController::class, 'destroy']); // Admin shipments management (can view ALL shipments)
+
+  // List products (dashboard already has this)
+
+
+    // Inside the admin middleware group:
+Route::prefix('products')->name('products.')->group(function() {
+    Route::get('/', [ProductsController::class, 'index'])->name('index'); // Add this
+    Route::get('api/list', [ProductsController::class, 'apiIndex']);
+    Route::get('api/{product}', [ProductsController::class, 'apiShow']);
+    Route::post('/', [ProductsController::class, 'store']);
+    Route::put('{product}', [ProductsController::class, 'update']);
+    Route::delete('{product}', [ProductsController::class, 'destroy']);
+});
+
     Route::get('/shipments', [AdminController::class, 'shipments'])->name('admin.shipments');
     Route::get('/shipments/create', [AdminController::class, 'createShipment'])->name('admin.shipments.create');
     Route::post('/shipments', [AdminController::class, 'storeShipment'])->name('admin.shipments.store');

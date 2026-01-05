@@ -3,183 +3,139 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use Illuminate\Http\Request; // Make sure this is imported!
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 class ProductsController extends Controller
 {
-    public function data()
+    // ==================== Get all products ====================
+    public function apiIndex()
     {
-        return Product::with('category')->get()->map(function ($p) {
-            return [
-                'id'             => $p->id,
-                'name'           => $p->name,
-                'description'    => $p->description,
-                'category_name'  => optional($p->category)->name,
-                'category_slug'  => $p->category_slug,
+        try {
+            $products = Product::with('category')->get()->map(function($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'description' => $p->description,
+                    'category_id' => $p->category_id,
+                    'category' => $p->category ? ['id' => $p->category->id, 'name' => $p->category->name] : null,
+                    'price' => $p->price,
+                    'stock_quantity' => $p->stock_quantity,
+                    'status' => $p->status,
+                    'image' => $p->image ? asset("images/products/{$p->image}") : null,
+                    'created_at' => $p->created_at,
+                ];
+            });
 
-                'price'          => (float) $p->price,
-
-                'status'         => $p->status,
-                'stock_quantity' => $p->stock_quantity,
-                'image'          => $p->image,
-            ];
-        });
+            return response()->json($products);
+        } catch (\Throwable $e) {
+            Log::error('Products API Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch products'
+            ], 500);
+        }
     }
 
+    // ==================== Store new product ====================
     public function store(Request $request)
     {
-        Log::info('=== PRODUCT STORE VALIDATION DEBUG ===');
-        Log::info('Request data:', $request->except(['image'])); // Don't log file content
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|integer',
+            'price' => 'required|numeric',
+            'stock_quantity' => 'required|integer',
+            'status' => 'required|string|in:active,inactive',
+            'description' => 'required|string',
+            'image' => 'nullable|image|max:2048',
+        ]);
 
-        try {
-            $data = $request->validate([
-                'name'           => 'required|string|max:255',
-                'description'    => 'required|string',
-                'category_id'    => 'required|exists:categories,id',
-                'price'          => 'required|numeric|min:0',
-                'status'         => 'required|in:active,inactive',
-                'stock_quantity' => 'required|integer|min:0',
-                'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
-
-            Log::info('Validation passed successfully');
-
-            // Handle image upload
-            if ($request->hasFile('image')) {
-                $file = $request->file('image');
-
-                Log::info('File validation:', [
-                    'isValid'   => $file->isValid(),
-                    'mime'      => $file->getMimeType(),
-                    'size'      => $file->getSize(),
-                    'extension' => $file->getClientOriginalExtension(),
-                ]);
-
-                if ($file->isValid()) {
-                    $directory = public_path('images/products');
-                    if (! File::exists($directory)) {
-                        File::makeDirectory($directory, 0755, true);
-                    }
-
-                    $filename = time() . '_' . $file->getClientOriginalName();
-                    $file->move($directory, $filename);
-                    $data['image'] = $filename;
-
-                    Log::info('Image saved: ' . $filename);
-                }
-            } else {
-                $data['image'] = null;
-            }
-
-            $product = Product::create($data);
-
-            Log::info('Product created: ' . $product->id);
-
-            return response()->json([
-                'success'    => true,
-                'message'    => 'Product created successfully',
-                'product_id' => $product->id,
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation errors:', $e->errors());
-            Log::error('Failed data:', $request->all());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $e->errors(),
-            ], 422);
-
-        } catch (\Exception $e) {
-            Log::error('Store error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create product: ' . $e->getMessage(),
-            ], 500);
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('images/products'), $filename);
+            $data['image'] = $filename;
         }
+
+        $product = Product::create($data);
+
+        return response()->json([
+            'success' => true,
+            'product' => [
+                ...$product->toArray(),
+                'image' => $product->image ? asset("images/products/{$product->image}") : null,
+                'category' => $product->category ? ['id' => $product->category->id, 'name' => $product->category->name] : null,
+            ]
+        ]);
     }
+
+    // ==================== Update product ====================
     public function update(Request $request, Product $product)
     {
-        try {
-            $data = $request->validate([
-                'name'           => 'required|string|max:255',
-                'description'    => 'required|string',
-                'category_id'    => 'required|exists:categories,id',
-                'price'          => 'required|numeric|min:0',
-                'status'         => 'required|in:active,inactive',
-                'stock_quantity' => 'required|integer|min:0',
-                'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|integer',
+            'price' => 'required|numeric',
+            'stock_quantity' => 'required|integer',
+            'status' => 'required|string|in:active,inactive',
+            'description' => 'required|string',
+            'image' => 'nullable|image|max:2048',
+        ]);
 
-            if ($request->hasFile('image')) {
-                // Create directory if it doesn't exist
-                $directory = public_path('images/products');
-                if (! File::exists($directory)) {
-                    File::makeDirectory($directory, 0755, true);
-                }
-
-                // Delete old image if exists
-                if ($product->image && file_exists($directory . '/' . $product->image)) {
-                    unlink($directory . '/' . $product->image);
-                }
-
-                // Generate unique filename
-                $filename = time() . '_' . $request->file('image')->getClientOriginalName();
-
-                // Move file to public/images/products
-                $request->file('image')->move($directory, $filename);
-
-                // Store only the filename in database
-                $data['image'] = $filename;
-            } else {
-                // Keep existing image if not uploading new one
-                $data['image'] = $product->image;
+        if ($request->hasFile('image')) {
+            // Delete old image
+            if ($product->image && File::exists(public_path("images/products/{$product->image}"))) {
+                File::delete(public_path("images/products/{$product->image}"));
             }
 
-            $product->update($data);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Product updated successfully',
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Product update error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update product: ' . $e->getMessage(),
-            ], 500);
+            $file = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('images/products'), $filename);
+            $data['image'] = $filename;
         }
+
+        $product->update($data);
+
+        return response()->json([
+            'success' => true,
+            'product' => [
+                ...$product->toArray(),
+                'image' => $product->image ? asset("images/products/{$product->image}") : null,
+                'category' => $product->category ? ['id' => $product->category->id, 'name' => $product->category->name] : null,
+            ]
+        ]);
     }
-    // Add this method to your ProductsController class
+
+    // ==================== Delete product ====================
     public function destroy(Product $product)
     {
-        try {
-            // Delete the product image if it exists
-            if ($product->image) {
-                $imagePath = public_path('images/products/' . $product->image);
-                if (File::exists($imagePath)) {
-                    File::delete($imagePath);
-                }
-            }
-
-            // Delete the product
-            $product->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Product deleted successfully',
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Product delete error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete product: ' . $e->getMessage(),
-            ], 500);
+        if ($product->image && File::exists(public_path("images/products/{$product->image}"))) {
+            File::delete(public_path("images/products/{$product->image}"));
         }
+
+        $product->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product deleted successfully',
+        ]);
+    }
+
+    // ==================== Fetch single product ====================
+    public function apiShow(Product $product)
+    {
+        return response()->json([
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'category_id' => $product->category_id,
+            'category' => $product->category ? ['id' => $product->category->id, 'name' => $product->category->name] : null,
+            'price' => $product->price,
+            'stock_quantity' => $product->stock_quantity,
+            'status' => $product->status,
+            'image' => $product->image ? asset("images/products/{$product->image}") : null,
+            'created_at' => $product->created_at,
+        ]);
     }
 }

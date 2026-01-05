@@ -4,6 +4,17 @@
 
 <!-- Core Admin Framework -->
 <script src="{{ asset('js/admin/admin-core.js') }}"></script>
+@if(session('success'))
+<script>
+    toastr.success("{{ session('success') }}");
+</script>
+@endif
+
+@if(session('error'))
+<script>
+    toastr.error("{{ session('error') }}");
+</script>
+@endif
 
 <!-- All Admin Modules -->
 @if(request()->is('admin*'))

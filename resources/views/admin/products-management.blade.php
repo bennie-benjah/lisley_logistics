@@ -1,4 +1,5 @@
- <section id="productsPage" class="admin-page hidden">
+<!-- Products Management Page -->
+            <section id="productsPage" class="admin-page hidden">
                 <div class="table-container">
                     <div class="table-header">
                         <h3>Products Management</h3>
